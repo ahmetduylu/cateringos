@@ -5,8 +5,7 @@ from app.database import Base, engine
 from app.routers import auth, leads, reports
 from app.routers.apify import router as apify_router
 
-# Tüm modelleri içe aktar — Alembic migration ve Base.metadata için gerekli
-from app.models import user, lead, lead_log  # noqa: F401
+from app.models import user, lead, lead_log
 
 app = FastAPI(
     title="LocalCateringOS API",
@@ -14,20 +13,24 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — Frontend'in backend'e erişmesi için
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Production'da spesifik domain ile kısıtla
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Router'ları kaydet
 app.include_router(auth.router)
 app.include_router(leads.router)
 app.include_router(reports.router)
 app.include_router(apify_router)
+
+
+@app.on_event("startup")
+def startup():
+    """Uygulama başladığında tabloları oluştur (Supabase için)"""
+    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/", tags=["health"])
