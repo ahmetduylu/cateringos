@@ -1,0 +1,1 @@
+postgresql://postgres:[ŞİFRE]@db.qamatzevryktdwasnnyp.supabase.co:6543/postgres

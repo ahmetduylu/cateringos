@@ -1,7 +1,6 @@
 import axios from "axios";
 
-// Production'da nginx /api/ ile proxy yapıyor, dev'de doğrudan backend'e
-const API_BASE = import.meta.env.PROD ? "/api" : (import.meta.env.VITE_API_URL || "http://localhost:8000");
+const API_BASE = import.meta.env.VITE_API_URL || "https://cateringos.onrender.com";
 
 const api = axios.create({
   baseURL: API_BASE,
