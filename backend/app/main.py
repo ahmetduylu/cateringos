@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import Base, engine
 from app.routers import auth, leads, reports
 from app.routers.apify import router as apify_router
-
 from app.models import user, lead, lead_log
 
 app = FastAPI(
@@ -15,7 +14,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "https://cateringos.vercel.app", "https://cateringos.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,7 +28,6 @@ app.include_router(apify_router)
 
 @app.on_event("startup")
 def startup():
-    """Uygulama başladığında tabloları oluştur (Supabase için)"""
     Base.metadata.create_all(bind=engine)
 
 
