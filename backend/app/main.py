@@ -19,14 +19,13 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables created/verified")
     except Exception as e:
-        logger.error(f"Database connection error: {e}")
+        logger.error(f"Database error: {e}")
     yield
     logger.info("Shutting down...")
 
 
 app = FastAPI(
     title="LocalCateringOS API",
-    description="Yerel Catering Firması için CRM & Lead Yönetim Sistemi",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -45,11 +44,21 @@ app.include_router(reports.router)
 app.include_router(apify_router)
 
 
-@app.get("/", tags=["health"])
+@app.get("/")
 def root():
-    return {"status": "ok", "service": "LocalCateringOS API", "version": "1.0.0"}
+    return {"status": "ok"}
 
 
-@app.get("/health", tags=["health"])
+@app.get("/health")
 def health():
     return {"status": "healthy"}
+
+
+@app.post("/init-db")
+def init_db():
+    """Manuel olarak veritabanı tablolarını oluştur"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        return {"status": "ok", "message": "Tablolar oluşturuldu"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
