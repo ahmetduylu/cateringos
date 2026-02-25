@@ -1,5 +1,5 @@
 from datetime import timedelta
-
+import traceback
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -17,22 +17,37 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(request: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
-    if not user or not verify_password(request.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email veya şifre hatalı",
+    try:
+        user = db.query(User).filter(User.email == request.email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Kullanıcı bulunamadı",
+            )
+        if not verify_password(request.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Email veya şifre hatalı",
+            )
+        access_token = create_access_token(
+            data={"sub": str(user.id)},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-    access_token = create_access_token(
-        data={"sub": str(user.id)},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return TokenResponse(
-        access_token=access_token,
-        user_id=user.id,
-        ad=user.ad,
-        rol=user.rol,
-    )
+        return TokenResponse(
+            access_token=access_token,
+            user_id=user.id,
+            ad=user.ad,
+            rol=user.rol,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail=f"Sunucu hatası: {str(e)}",
+        )
 
 
 @router.get("/me", response_model=UserMe)
@@ -42,7 +57,6 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.post("/users", response_model=UserOut, status_code=201)
 def create_user(body: UserCreate, db: Session = Depends(get_db)):
-    """Yeni kullanıcı oluştur (admin işlemi — production'da chief korumasına alınmalı)."""
     existing = db.query(User).filter(User.email == body.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Bu email zaten kayıtlı")
@@ -59,6 +73,5 @@ def create_user(body: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/users", response_model=list[UserOut])
-def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Tüm kullanıcıları listele."""
+def list_users(db: Session = Depends(get_db)):
     return db.query(User).all()
